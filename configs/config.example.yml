@@ -1,0 +1,12 @@
+server:
+  host: localhost
+  port: 1025
+  domain: localhost
+  read_timeout: 10
+  write_timeout: 10
+  max_message_bytes: 1048576  # 1MB
+  max_recipients: 50
+  allow_insecure_auth: true
+
+ui:
+  theme: light  # or dark 
