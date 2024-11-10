@@ -30,19 +30,19 @@ PostPilot is a developer tool inspired by Laravel Herd's mail panel, designed to
 To get started with development:
 
 1. Install dependencies:
-~```bash
+```bash
 # Install frontend dependencies
 cd frontend
 npm install
 
 # Install Go dependencies
 go mod tidy
-~```
+```
 
 2. Run in development mode:
-~```bash
+```bash
 wails dev
-~```
+```
 
 This will start the development server with hot reload support. The application will be available at `http://localhost:34115`.
 
@@ -50,9 +50,9 @@ This will start the development server with hot reload support. The application 
 
 To build a production version:
 
-~```bash
+```bash
 wails build
-~```
+```
 
 ## Contributing
 
