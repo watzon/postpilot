@@ -1,92 +1,46 @@
-<div align="center">
-  <img src="frontend/src/assets/images/logo.svg" alt="PostPilot Logo" width="200" height="200" />
-  <h1>PostPilot</h1>
-  <p><em>A sleek local SMTP testing environment for developers</em></p>
-</div>
+# Getting Started with Create React App
 
-## ⚠️ Alpha Status
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-PostPilot is currently in alpha. While the core functionality is working, you may encounter bugs or missing features. Use in development environments only.
+## Available Scripts
 
-<div align="center">
-  <img src=".github/screenshot.png" alt="PostPilot Screenshot" width="90%" />
-</div>
+In the project directory, you can run:
 
-## About
+### `npm start`
 
-PostPilot is a developer tool inspired by Laravel Herd's mail panel, designed to simplify email testing during development. It provides a local SMTP server that captures outgoing emails and displays them in a modern, user-friendly interface.
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-## Features
+The page will reload if you make edits.\
+You will also see any lint errors in the console.
 
-### Current
-- 📬 Local SMTP server for email testing
-- 🎨 Modern, responsive UI built with React and Tailwind CSS
-- 🌓 Light/Dark mode support
-- 📱 Preview emails in different formats (HTML, Text, Raw)
-- 🔍 Basic search capabilities
+### `npm test`
 
-### Roadmap
-- [ ] Template comparison and management
-- [ ] Advanced search and filtering
-  - [ ] Date range filtering
-  - [ ] Content search
-  - [ ] Regular expression support
-- [ ] Email analysis tools
-  - [ ] Spam score checking
-  - [ ] Client compatibility validation
-  - [ ] Size and content analysis
-- [ ] Developer utilities
-  - [ ] Export as cURL command
-  - [ ] Multiple format export (EML, MSG)
-  - [ ] REST API for programmatic access
-- [ ] Email debugging tools
-  - [ ] Rendering process visualization
-  - [ ] Compatibility checking
-  - [ ] Size breakdown analysis
-- [ ] Performance testing features
-  - [ ] Batch email testing
-  - [ ] Delivery timing analysis
-  - [ ] Server metrics
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-## Development
+### `npm run build`
 
-To get started with development:
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-1. Install dependencies:
-```bash
-# Install frontend dependencies
-cd frontend
-npm install
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
-# Install Go dependencies
-go mod tidy
-```
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-2. Run in development mode:
-```bash
-wails dev
-```
+### `npm run eject`
 
-This will start the development server with hot reload support.
+**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
 
-## Building
+If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-To build a production version:
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
 
-```bash
-wails build
-```
+You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
-## Contributing
+## Learn More
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-## License
-
-This project is licensed under the MIT License.
-
-## Acknowledgments
-
-- Inspired by Laravel Herd's mail panel
-- Built with [Wails](https://wails.io/)
-- Uses [React](https://reactjs.org/) and [Tailwind CSS](https://tailwindcss.com/)
+To learn React, check out the [React documentation](https://reactjs.org/).
