@@ -4,12 +4,13 @@ import screenshot from '../assets/images/screenshot.png';
 export default function Hero() {
   return (
     <div className="relative isolate px-6 pt-14 lg:px-8">
-      <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
+      <div className="mx-auto max-w-7xl py-32 sm:py-48 lg:py-56">
         <div className="text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            className="max-w-3xl mx-auto"
           >
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
               A Sleek Local SMTP Testing Environment
@@ -34,13 +35,13 @@ export default function Hero() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="mt-16 flow-root sm:mt-24"
+            className="mt-16 flow-root sm:mt-24 max-w-[90%] mx-auto"
           >
             <div className="-m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
               <img
                 src={screenshot}
                 alt="PostPilot interface"
-                className="rounded-md shadow-2xl ring-1 ring-gray-900/10"
+                className="rounded-md shadow-2xl ring-1 ring-gray-900/10 w-full"
               />
             </div>
           </motion.div>
