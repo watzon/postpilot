@@ -1,13 +1,8 @@
 before:
   hooks:
-    - go mod tidy
-    - go generate ./...
-    # Build frontend
-    - bash -c "cd frontend && npm install && npm run build"
-    # Generate bindings
-    - bash -c 'go build -ldflags "-s -w -X main.useWails=true" -tags "bindings" -o bindings && ./bindings && rm -f ./bindings'
-    # Build the .syso files for windows builds
-    # - bash -c "go-winres make" # TODO
+    - make dep
+    - make bindings
+    
 builds:
   - main: .
     id: "postpilot"
@@ -100,10 +95,65 @@ signs:
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
-
 changelog:
   sort: asc
   filters:
     exclude:
       - '^docs:'
       - '^test:'
+
+nfpms:
+  - vendor: postpilot
+    license: MIT
+    homepage: https://postpilot.watzon.tech
+    maintainer: "Watzon <cawatson1993@gmail.com>"
+    description: "Email and SMTP testing GUI for developers"
+    formats:
+      - deb
+      - rpm
+      - apk
+      - archlinux
+    bindir: /usr/local/bin
+    contents:
+      - src: ./build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop
+        dst: /usr/share/applications/postpilot.desktop
+      - src: ./build/linux/postpilot_0.0.0_ARCH/usr/share/icons/hicolor/512x512/apps/postpilot.png
+        dst: /usr/share/icons/hicolor/512x512/apps/postpilot.png
+      - src: ./build/linux/postpilot_0.0.0_ARCH/usr/share/metainfo/tech.watzon.postpilot.appdata.xml
+        dst: /usr/share/metainfo/tech.watzon.postpilot.appdata.xml
+    dependencies:
+      # Core Wails dependencies
+      - gtk3
+      - webkit2gtk-4.0
+      - libayatana-appindicator3-1  # For system tray support
+      
+      # Additional runtime dependencies
+      - libwebkit2gtk-4.0-37
+      - libgtk-3-0
+      - xdg-utils                    # For opening URLs in browser
+    overrides:
+      rpm:
+        dependencies:
+          - gtk3
+          - webkit2gtk4.0
+          - libappindicator-gtk3      # RedHat/Fedora equivalent
+          - webkit2gtk3
+      apk:
+        dependencies:
+          - gtk+3.0
+          - webkit2gtk
+          - libappindicator
+      archlinux:
+        dependencies:
+          - gtk3
+          - webkit2gtk
+          - libappindicator-gtk3
+    rpm:
+      packager: "Watzon <cawatson1993@gmail.com>"
+    deb:
+      fields:
+        Maintainer: "Watzon <cawatson1993@gmail.com>"
+        Bugs: https://github.com/watzon/postpilot/issues
+    archlinux:
+      packager: "Watzon <cawatson1993@gmail.com>"
+
