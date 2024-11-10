@@ -8,6 +8,10 @@
 
 PostPilot is currently under active development. While the core functionality is being built, the project is not yet ready for production use. Stay tuned for updates!
 
+<div align="center">
+  <img src=".github/screenshot.png" alt="PostPilot Screenshot" width="90%" />
+</div>
+
 ## About
 
 PostPilot is a developer tool inspired by Laravel Herd's mail panel, designed to simplify email testing during development. It provides a local SMTP server that captures outgoing emails and displays them in a modern, user-friendly interface.
