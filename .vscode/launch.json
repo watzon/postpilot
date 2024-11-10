@@ -11,14 +11,6 @@
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/postpilot-send/main.go",
             "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": "Launch PostPilot",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "${workspaceFolder}/cmd/postpilot/main.go",
-            "cwd": "${workspaceFolder}"
         }
     ]
 }

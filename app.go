@@ -3,9 +3,16 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/watzon/postpilot/internal/notify"
+	"github.com/watzon/postpilot/internal/smtp"
 )
 
 type Email struct {
@@ -19,9 +26,11 @@ type Email struct {
 }
 
 type UISettings struct {
-	Theme       string `json:"theme"`
-	ShowPreview bool   `json:"showPreview"`
-	TimeFormat  string `json:"timeFormat" enum:"12,24"`
+	Theme        string `json:"theme"`
+	ShowPreview  bool   `json:"showPreview"`
+	TimeFormat   string `json:"timeFormat" enum:"12,24"`
+	Notification bool   `json:"notification"`
+	Persistence  bool   `json:"persistence"`
 }
 
 type SMTPSettings struct {
@@ -39,100 +48,148 @@ type Settings struct {
 }
 
 type App struct {
-	ctx context.Context
+	ctx    context.Context
+	smtp   *smtp.Server
+	emails []*Email
+	mu     sync.RWMutex
 }
 
 func NewApp() *App {
-	return &App{}
+	return &App{
+		emails: make([]*Email, 0),
+	}
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	// Load settings first
+	settings, err := a.GetSettings()
+	if err != nil {
+		log.Printf("Failed to load settings: %v", err)
+	}
+
+	// Load emails from disk if persistence is enabled
+	if settings.UI.Persistence {
+		if err := a.loadEmails(); err != nil {
+			log.Printf("Failed to load emails: %v", err)
+		}
+	} else {
+		// Clear any existing emails if persistence is disabled
+		a.emails = make([]*Email, 0)
+		_ = os.Remove(a.getEmailsPath())
+	}
+
+	// Start SMTP server
+	if err := a.startSMTPServer(); err != nil {
+		log.Printf("Failed to start SMTP server: %v", err)
+		return
+	}
+
+	// Start handling incoming emails
+	go a.handleIncomingEmails()
 }
 
-// GetEmails returns all emails
-func (a *App) GetEmails() []Email {
-	return []Email{
-		{
-			ID:      "1",
-			From:    "welcome@cloudspace.dev",
-			To:      []string{"developer@example.com"},
-			Subject: "Welcome to CloudSpace",
-			Body:    "Welcome to CloudSpace! We're excited to have you on board.",
-			HTML: `
-<div style="background-color: #E2E8F0; min-height: 100vh; padding: 40px 20px;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; padding: 40px; font-family: system-ui, -apple-system, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <h1 style="color: #2D3748; font-size: 24px; margin-bottom: 24px;">Welcome to CloudSpace</h1>
-        
-        <p style="color: #4A5568; margin-bottom: 16px;">
-            We're thrilled to have you join CloudSpace, your new home for cloud development.
-        </p>
-
-        <div style="background-color: #F7FAFC; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <h2 style="color: #2D3748; font-size: 18px; margin-bottom: 16px;">Your Account Details</h2>
-            <p style="color: #4A5568; margin-bottom: 8px;">
-                Account ID: CS-28390-DEV
-            </p>
-            <p style="color: #4A5568; margin-bottom: 8px;">
-                Region: US-WEST
-            </p>
-            <p style="color: #4A5568;">
-                Plan: Developer Pro
-            </p>
-        </div>
-
-        <p style="color: #4A5568; margin-bottom: 24px;">
-            To get started, check out these resources:
-        </p>
-
-        <ul style="color: #4A5568; margin-bottom: 24px; padding-left: 20px;">
-            <li style="margin-bottom: 8px;">
-                <a href="#" style="color: #4299E1; text-decoration: none;">Quick Start Guide</a>
-            </li>
-            <li style="margin-bottom: 8px;">
-                <a href="#" style="color: #4299E1; text-decoration: none;">API Documentation</a>
-            </li>
-            <li style="margin-bottom: 8px;">
-                <a href="#" style="color: #4299E1; text-decoration: none;">Developer Dashboard</a>
-            </li>
-        </ul>
-
-        <div style="background-color: #EBF8FF; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <p style="color: #2C5282; margin-bottom: 16px;">
-                <strong>Pro Tip:</strong> Set up two-factor authentication for enhanced security.
-            </p>
-            <a href="#" style="display: inline-block; background-color: #4299E1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
-                Enable 2FA Now
-            </a>
-        </div>
-
-        <p style="color: #4A5568; margin-top: 32px;">
-            Happy coding,<br>
-            The CloudSpace Team
-        </p>
-    </div>
-</div>`,
-			Timestamp: time.Now().Add(-1 * time.Hour),
-		},
-		{
-			ID:        "2",
-			From:      "noreply@company.com",
-			To:        []string{"user@example.com"},
-			Subject:   "Your Account Statement",
-			Body:      "Your monthly account statement is ready.",
-			HTML:      "<h1>Monthly Statement</h1><p>Your account statement for this month is now available.</p>",
-			Timestamp: time.Now().Add(-2 * time.Hour),
-		},
-		{
-			ID:        "3",
-			From:      "newsletter@tech.com",
-			To:        []string{"subscriber@example.com"},
-			Subject:   "Weekly Tech Newsletter",
-			Body:      "Here's your weekly roundup of tech news.",
-			HTML:      "<h1>Tech Weekly</h1><p>The latest in technology news and updates.</p>",
-			Timestamp: time.Now().Add(-24 * time.Hour),
-		},
+func (a *App) shutdown(ctx context.Context) {
+	if a.smtp != nil {
+		if err := a.smtp.Stop(); err != nil {
+			log.Printf("Error stopping SMTP server: %v", err)
+		}
 	}
+}
+
+func (a *App) startSMTPServer() error {
+	settings, err := a.GetSettings()
+	if err != nil {
+		return fmt.Errorf("failed to get settings: %w", err)
+	}
+
+	// Create SMTP server
+	s := smtp.NewServer(
+		settings.SMTP.Host,
+		settings.SMTP.Port,
+		settings.SMTP.Auth,
+		settings.SMTP.Username,
+		settings.SMTP.Password,
+		settings.SMTP.TLS,
+	)
+
+	// Start server
+	if err := s.Start(); err != nil {
+		return fmt.Errorf("failed to start SMTP server: %w", err)
+	}
+
+	a.smtp = s
+
+	// Start goroutine to handle incoming emails
+	go a.handleIncomingEmails()
+
+	return nil
+}
+
+func (a *App) handleIncomingEmails() {
+	emailChan := a.smtp.EmailsChan()
+
+	for email := range emailChan {
+		// Convert SMTP email to our Email type
+		newEmail := &Email{
+			ID:        email.ID,
+			From:      email.From,
+			To:        email.To,
+			Subject:   email.Subject,
+			Body:      email.Body,
+			HTML:      email.HTML,
+			Timestamp: email.Timestamp,
+		}
+
+		// Store email
+		a.mu.Lock()
+		a.emails = append(a.emails, newEmail)
+		a.mu.Unlock()
+
+		// Get current settings
+		settings, err := a.GetSettings()
+		if err != nil {
+			log.Printf("Failed to get settings: %v", err)
+			return
+		}
+
+		// Send notification
+		if settings.UI.Notification {
+			go func(e *Email) {
+				notify.SendNotification(
+					"New Email",
+					fmt.Sprintf("From: %s\nSubject: %s", e.From, e.Subject),
+				)
+			}(newEmail)
+		}
+
+		// Save emails to disk
+		if err := a.saveEmails(); err != nil {
+			log.Printf("Failed to save emails: %v", err)
+		}
+
+		// Emit event to frontend
+		runtime.EventsEmit(a.ctx, "new:email", email)
+	}
+}
+
+// GetEmails returns all stored emails
+func (a *App) GetEmails() []*Email {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.emails
+}
+
+// RestartSMTPServer restarts the SMTP server with new settings
+func (a *App) RestartSMTPServer() error {
+	if a.smtp != nil {
+		if err := a.smtp.Stop(); err != nil {
+			return fmt.Errorf("failed to stop SMTP server: %w", err)
+		}
+	}
+
+	return a.startSMTPServer()
 }
 
 func (a *App) GetSettings() (Settings, error) {
@@ -141,9 +198,11 @@ func (a *App) GetSettings() (Settings, error) {
 	// Default settings
 	settings := Settings{
 		UI: UISettings{
-			Theme:       "system",
-			ShowPreview: false,
-			TimeFormat:  "12",
+			Theme:        "system",
+			ShowPreview:  false,
+			TimeFormat:   "12",
+			Notification: true,
+			Persistence:  false,
 		},
 		SMTP: SMTPSettings{
 			Host: "localhost",
@@ -197,6 +256,91 @@ func (a *App) getConfigPath() string {
 	}
 
 	return filepath.Join(configDir, "postpilot", "settings.json")
+}
+
+func (a *App) getEmailsPath() string {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		configDir = "."
+	}
+	return filepath.Join(configDir, "postpilot", "emails.json")
+}
+
+func (a *App) saveEmails() error {
+	settings, err := a.GetSettings()
+	if err != nil {
+		return err
+	}
+
+	if !settings.UI.Persistence {
+		return nil
+	}
+
+	emailsPath := a.getEmailsPath()
+	configDir := filepath.Dir(emailsPath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return err
+	}
+
+	a.mu.RLock()
+	data, err := json.MarshalIndent(a.emails, "", "  ")
+	a.mu.RUnlock()
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(emailsPath, data, 0644)
+}
+
+func (a *App) loadEmails() error {
+	settings, err := a.GetSettings()
+	if err != nil {
+		return err
+	}
+
+	if !settings.UI.Persistence {
+		// Clear any existing emails file
+		emailsPath := a.getEmailsPath()
+		_ = os.Remove(emailsPath)
+		return nil
+	}
+
+	emailsPath := a.getEmailsPath()
+	if _, err := os.Stat(emailsPath); os.IsNotExist(err) {
+		return nil
+	}
+
+	data, err := os.ReadFile(emailsPath)
+	if err != nil {
+		return err
+	}
+
+	var emails []*Email
+	if err := json.Unmarshal(data, &emails); err != nil {
+		return err
+	}
+
+	a.mu.Lock()
+	a.emails = emails
+	a.mu.Unlock()
+
+	return nil
+}
+
+// ClearEmails clears all stored emails
+func (a *App) ClearEmails() error {
+	a.mu.Lock()
+	a.emails = make([]*Email, 0)
+	a.mu.Unlock()
+
+	// Remove the emails file if it exists
+	emailsPath := a.getEmailsPath()
+	_ = os.Remove(emailsPath)
+
+	// Emit event to frontend
+	runtime.EventsEmit(a.ctx, "emails:cleared")
+
+	return nil
 }
 
 func (a *App) GetVersion() string {

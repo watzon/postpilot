@@ -1,0 +1,119 @@
+before:
+  hooks:
+    - make dep
+    - make bindings
+
+builds:
+  - main: .
+    binary: "{{ .ProjectName }}"
+    goos:
+      - linux
+    goarch:
+      - arm64
+    env:
+      - CGO_ENABLED=1
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.Version={{.Version}} -X main.useWails=true
+    tags:
+      - desktop
+      - production
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- .Arch }}
+    files:
+      - usr/**/*
+
+checksum:
+  name_template: 'checksums-arm64.txt'
+
+source:
+  enabled: false
+
+sboms:
+  - artifacts: archive
+  - id: source
+    artifacts: source
+
+signs:
+- cmd: cosign
+  env:
+  - COSIGN_EXPERIMENTAL=1
+  certificate: '${artifact}-arm64.pem'
+  signature: '${artifact}-arm64.sig'
+  args:
+    - sign-blob
+    - '--output-certificate=${certificate}'
+    - '--output-signature=${signature}'
+    - '${artifact}'
+    - "--yes"
+  artifacts: checksum
+  output: true
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+nfpms:
+  - vendor: postpilot
+    license: MIT
+    homepage: https://postpilot.watzon.tech
+    maintainer: "Watzon <cawatson1993@gmail.com>"
+    description: "Email and SMTP testing GUI for developers"
+    formats:
+      - deb
+      - rpm
+      - apk
+      - archlinux
+    bindir: /usr/local/bin
+    contents:
+      - src: ./build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop
+        dst: /usr/share/applications/postpilot.desktop
+      - src: ./build/linux/postpilot_0.0.0_ARCH/usr/share/icons/hicolor/512x512/apps/postpilot.png
+        dst: /usr/share/icons/hicolor/512x512/apps/postpilot.png
+      - src: ./build/linux/postpilot_0.0.0_ARCH/usr/share/metainfo/tech.watzon.postpilot.appdata.xml
+        dst: /usr/share/metainfo/tech.watzon.postpilot.appdata.xml
+    dependencies:
+      - gtk3
+      - webkit2gtk-4.0
+      - libayatana-appindicator3-1
+      - libwebkit2gtk-4.0-37
+      - libgtk-3-0
+      - xdg-utils
+    overrides:
+      rpm:
+        dependencies:
+          - gtk3
+          - webkit2gtk4.0
+          - libappindicator-gtk3
+          - webkit2gtk3
+      apk:
+        dependencies:
+          - gtk+3.0
+          - webkit2gtk
+          - libappindicator
+      archlinux:
+        dependencies:
+          - gtk3
+          - webkit2gtk
+          - libappindicator-gtk3
+    rpm:
+      packager: "Watzon <cawatson1993@gmail.com>"
+    deb:
+      fields:
+        Maintainer: "Watzon <cawatson1993@gmail.com>"
+        Bugs: https://github.com/watzon/postpilot/issues
+    archlinux:
+      packager: "Watzon <cawatson1993@gmail.com>"

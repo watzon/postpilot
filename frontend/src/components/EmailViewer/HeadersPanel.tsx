@@ -1,6 +1,7 @@
 import React from 'react';
 import { Email } from '../../types/email';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useClipboard } from '../../hooks/useClipboard';
 
 interface HeadersPanelProps {
   email: Email;
@@ -8,22 +9,22 @@ interface HeadersPanelProps {
 }
 
 const HeadersPanel: React.FC<HeadersPanelProps> = ({ email, onClose }) => {
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      // Optionally show a toast notification
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
+  const { copyToClipboard } = useClipboard();
 
   const headers = [
     { key: 'From', value: email.from },
     { key: 'To', value: email.to.join(', ') },
+    email.cc?.length ? { key: 'Cc', value: email.cc.join(', ') } : null,
+    email.bcc?.length ? { key: 'Bcc', value: email.bcc.join(', ') } : null,
+    email.replyTo ? { key: 'Reply-To', value: email.replyTo } : null,
     { key: 'Subject', value: email.subject },
     { key: 'Date', value: new Date(email.timestamp).toUTCString() },
-    // Add any other headers you want to display
-  ];
+    // Add any additional headers
+    ...(email.headers ? Object.entries(email.headers).map(([key, values]) => ({
+      key,
+      value: values.join(', ')
+    })) : [])
+  ].filter((header): header is { key: string; value: string } => header !== null);
 
   return (
     <div className="h-full flex flex-col">

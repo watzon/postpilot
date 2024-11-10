@@ -9,5 +9,8 @@
   "author": {
     "name": "Chris Watson",
     "email": "cawatson1993@gmail.com"
+  },
+  "info": {
+    "productVersion": "0.1.2"
   }
 }

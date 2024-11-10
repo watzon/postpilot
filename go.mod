@@ -1,16 +1,27 @@
-module mailviewer
+module github.com/watzon/postpilot
 
 go 1.21
 
 toolchain go1.23.2
 
-require github.com/wailsapp/wails/v2 v2.9.2
+require (
+	github.com/emersion/go-smtp v0.21.3
+	github.com/google/uuid v1.6.0
+	github.com/wailsapp/wails/v2 v2.9.2
+)
+
+require (
+	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4 // indirect
+	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
+	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
+)
 
 require (
 	github.com/bep/debounce v1.2.1 // indirect
+	github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21 // indirect
+	github.com/gen2brain/beeep v0.0.0-20240516210008-9c006672e7f4
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/jchv/go-winloader v0.0.0-20210711035445-715c2860da7e // indirect
 	github.com/labstack/echo/v4 v4.10.2 // indirect
 	github.com/labstack/gommon v0.4.0 // indirect

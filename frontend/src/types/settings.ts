@@ -7,6 +7,8 @@ export interface Settings {
     theme: string;
     showPreview: boolean;
     timeFormat: string;
+    notification: boolean;
+    persistence: boolean;
   };
   smtp: {
     host: string;
@@ -25,6 +27,8 @@ export function toFrontendSettings(backendSettings: main.Settings): Settings {
       theme: backendSettings.ui.theme,
       showPreview: backendSettings.ui.showPreview,
       timeFormat: backendSettings.ui.timeFormat,
+      notification: backendSettings.ui.notification,
+      persistence: backendSettings.ui.persistence,
     },
     smtp: {
       host: backendSettings.smtp.host,
@@ -43,6 +47,8 @@ export function toBackendSettings(frontendSettings: Settings): main.Settings {
     theme: frontendSettings.ui.theme,
     showPreview: frontendSettings.ui.showPreview,
     timeFormat: frontendSettings.ui.timeFormat,
+    notification: frontendSettings.ui.notification,
+    persistence: frontendSettings.ui.persistence,
   };
   settings.smtp = {
     host: frontendSettings.smtp.host,
