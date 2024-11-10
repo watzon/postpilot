@@ -8,7 +8,7 @@ interface TextViewProps {
 const TextView: React.FC<TextViewProps> = ({ email }) => {
   return (
     <div className="p-6">
-      <pre className="whitespace-pre-wrap font-mono text-sm">{email.body}</pre>
+      <pre className="whitespace-pre-wrap font-mono text-sm dark:text-gray-200">{email.body}</pre>
     </div>
   );
 };

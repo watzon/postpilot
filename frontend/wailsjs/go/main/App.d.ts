@@ -6,4 +6,6 @@ export function GetEmails():Promise<Array<main.Email>>;
 
 export function GetSettings():Promise<main.Settings>;
 
+export function GetVersion():Promise<string>;
+
 export function SaveSettings(arg1:main.Settings):Promise<void>;

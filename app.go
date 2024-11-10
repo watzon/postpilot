@@ -196,5 +196,9 @@ func (a *App) getConfigPath() string {
 		configDir = "."
 	}
 
-	return filepath.Join(configDir, "mailviewer", "settings.json")
+	return filepath.Join(configDir, "postpilot", "settings.json")
+}
+
+func (a *App) GetVersion() string {
+	return version
 }

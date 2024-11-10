@@ -15,7 +15,7 @@ ${email.body}`;
 
   return (
     <div className="p-6">
-      <pre className="whitespace-pre-wrap font-mono text-sm">{raw}</pre>
+      <pre className="whitespace-pre-wrap font-mono text-sm dark:text-gray-200">{raw}</pre>
     </div>
   );
 };

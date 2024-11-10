@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { GetSettings, SaveSettings } from '../../wailsjs/go/main/App';
 import { Settings, toFrontendSettings, toBackendSettings } from '../types/settings';
+import { WindowSetDarkTheme, WindowSetLightTheme } from '../../wailsjs/runtime/runtime';
 
 interface SettingsContextType {
   settings: Settings;
@@ -55,9 +56,36 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const updateTheme = (theme: string) => {
+    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      WindowSetDarkTheme();
+    } else {
+      document.documentElement.classList.remove('dark');
+      WindowSetLightTheme();
+    }
+  };
+
   useEffect(() => {
     loadSettings();
   }, []);
+
+  useEffect(() => {
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (settings.ui.theme === 'system') {
+        updateTheme('system');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [settings.ui.theme]);
+
+  useEffect(() => {
+    updateTheme(settings.ui.theme);
+  }, [settings.ui.theme]);
 
   return (
     <SettingsContext.Provider value={{ settings, updateSettings, isLoading }}>

@@ -5,19 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Mailsend",
+            "name": "Launch PostPilot Send",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/mailsend/main.go",
+            "program": "${workspaceFolder}/cmd/postpilot-send/main.go",
             "cwd": "${workspaceFolder}"
         },
         {
-            "name": "Launch Mailviewer",
+            "name": "Launch PostPilot",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/mailviewer/main.go",
+            "program": "${workspaceFolder}/cmd/postpilot/main.go",
             "cwd": "${workspaceFolder}"
         }
     ]
