@@ -2,10 +2,10 @@ before:
   hooks:
     - go mod tidy
     - go generate ./...
-    # Generate bindings
-    - bash -c 'go build -ldflags "-s -w -X main.useWails=true" -tags "bindings" -o bindings && ./bindings && rm -f ./bindings'
     # Build frontend
     - bash -c "cd frontend && npm install && npm run build"
+    # Generate bindings
+    - bash -c 'go build -ldflags "-s -w -X main.useWails=true" -tags "bindings" -o bindings && ./bindings && rm -f ./bindings'
     # Build the .syso files for windows builds
     # - bash -c "go-winres make" # TODO
 builds:
