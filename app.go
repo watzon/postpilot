@@ -3,9 +3,15 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/watzon/postpilot/internal/smtp"
 )
 
 type Email struct {
@@ -39,100 +45,106 @@ type Settings struct {
 }
 
 type App struct {
-	ctx context.Context
+	ctx    context.Context
+	smtp   *smtp.Server
+	emails []*Email
+	mu     sync.RWMutex
 }
 
 func NewApp() *App {
-	return &App{}
+	return &App{
+		emails: make([]*Email, 0),
+	}
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	// Start SMTP server
+	if err := a.startSMTPServer(); err != nil {
+		log.Printf("Failed to start SMTP server: %v", err)
+		return
+	}
 }
 
-// GetEmails returns all emails
-func (a *App) GetEmails() []Email {
-	return []Email{
-		{
-			ID:      "1",
-			From:    "welcome@cloudspace.dev",
-			To:      []string{"developer@example.com"},
-			Subject: "Welcome to CloudSpace",
-			Body:    "Welcome to CloudSpace! We're excited to have you on board.",
-			HTML: `
-<div style="background-color: #E2E8F0; min-height: 100vh; padding: 40px 20px;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; padding: 40px; font-family: system-ui, -apple-system, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <h1 style="color: #2D3748; font-size: 24px; margin-bottom: 24px;">Welcome to CloudSpace</h1>
-        
-        <p style="color: #4A5568; margin-bottom: 16px;">
-            We're thrilled to have you join CloudSpace, your new home for cloud development.
-        </p>
-
-        <div style="background-color: #F7FAFC; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <h2 style="color: #2D3748; font-size: 18px; margin-bottom: 16px;">Your Account Details</h2>
-            <p style="color: #4A5568; margin-bottom: 8px;">
-                Account ID: CS-28390-DEV
-            </p>
-            <p style="color: #4A5568; margin-bottom: 8px;">
-                Region: US-WEST
-            </p>
-            <p style="color: #4A5568;">
-                Plan: Developer Pro
-            </p>
-        </div>
-
-        <p style="color: #4A5568; margin-bottom: 24px;">
-            To get started, check out these resources:
-        </p>
-
-        <ul style="color: #4A5568; margin-bottom: 24px; padding-left: 20px;">
-            <li style="margin-bottom: 8px;">
-                <a href="#" style="color: #4299E1; text-decoration: none;">Quick Start Guide</a>
-            </li>
-            <li style="margin-bottom: 8px;">
-                <a href="#" style="color: #4299E1; text-decoration: none;">API Documentation</a>
-            </li>
-            <li style="margin-bottom: 8px;">
-                <a href="#" style="color: #4299E1; text-decoration: none;">Developer Dashboard</a>
-            </li>
-        </ul>
-
-        <div style="background-color: #EBF8FF; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <p style="color: #2C5282; margin-bottom: 16px;">
-                <strong>Pro Tip:</strong> Set up two-factor authentication for enhanced security.
-            </p>
-            <a href="#" style="display: inline-block; background-color: #4299E1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
-                Enable 2FA Now
-            </a>
-        </div>
-
-        <p style="color: #4A5568; margin-top: 32px;">
-            Happy coding,<br>
-            The CloudSpace Team
-        </p>
-    </div>
-</div>`,
-			Timestamp: time.Now().Add(-1 * time.Hour),
-		},
-		{
-			ID:        "2",
-			From:      "noreply@company.com",
-			To:        []string{"user@example.com"},
-			Subject:   "Your Account Statement",
-			Body:      "Your monthly account statement is ready.",
-			HTML:      "<h1>Monthly Statement</h1><p>Your account statement for this month is now available.</p>",
-			Timestamp: time.Now().Add(-2 * time.Hour),
-		},
-		{
-			ID:        "3",
-			From:      "newsletter@tech.com",
-			To:        []string{"subscriber@example.com"},
-			Subject:   "Weekly Tech Newsletter",
-			Body:      "Here's your weekly roundup of tech news.",
-			HTML:      "<h1>Tech Weekly</h1><p>The latest in technology news and updates.</p>",
-			Timestamp: time.Now().Add(-24 * time.Hour),
-		},
+func (a *App) shutdown(ctx context.Context) {
+	if a.smtp != nil {
+		if err := a.smtp.Stop(); err != nil {
+			log.Printf("Error stopping SMTP server: %v", err)
+		}
 	}
+}
+
+func (a *App) startSMTPServer() error {
+	settings, err := a.GetSettings()
+	if err != nil {
+		return fmt.Errorf("failed to get settings: %w", err)
+	}
+
+	// Create SMTP server
+	s := smtp.NewServer(
+		settings.SMTP.Host,
+		settings.SMTP.Port,
+		settings.SMTP.Auth,
+		settings.SMTP.Username,
+		settings.SMTP.Password,
+		settings.SMTP.TLS,
+	)
+
+	// Start server
+	if err := s.Start(); err != nil {
+		return fmt.Errorf("failed to start SMTP server: %w", err)
+	}
+
+	a.smtp = s
+
+	// Start goroutine to handle incoming emails
+	go a.handleIncomingEmails()
+
+	return nil
+}
+
+func (a *App) handleIncomingEmails() {
+	emailChan := a.smtp.EmailsChan()
+
+	for email := range emailChan {
+		// Convert SMTP email to our Email type
+		newEmail := &Email{
+			ID:        email.ID,
+			From:      email.From,
+			To:        email.To,
+			Subject:   email.Subject,
+			Body:      email.Body,
+			HTML:      email.HTML,
+			Timestamp: email.Timestamp,
+		}
+
+		// Store email
+		a.mu.Lock()
+		a.emails = append(a.emails, newEmail)
+		a.mu.Unlock()
+
+		// Notify frontend
+		runtime.EventsEmit(a.ctx, "new:email", newEmail)
+	}
+}
+
+// GetEmails returns all stored emails
+func (a *App) GetEmails() []*Email {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.emails
+}
+
+// RestartSMTPServer restarts the SMTP server with new settings
+func (a *App) RestartSMTPServer() error {
+	if a.smtp != nil {
+		if err := a.smtp.Stop(); err != nil {
+			return fmt.Errorf("failed to stop SMTP server: %w", err)
+		}
+	}
+
+	return a.startSMTPServer()
 }
 
 func (a *App) GetSettings() (Settings, error) {
