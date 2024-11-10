@@ -69,6 +69,8 @@ export namespace main {
 	    theme: string;
 	    showPreview: boolean;
 	    timeFormat: string;
+	    notification: boolean;
+	    persistence: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new UISettings(source);
@@ -79,6 +81,8 @@ export namespace main {
 	        this.theme = source["theme"];
 	        this.showPreview = source["showPreview"];
 	        this.timeFormat = source["timeFormat"];
+	        this.notification = source["notification"];
+	        this.persistence = source["persistence"];
 	    }
 	}
 	export class Settings {

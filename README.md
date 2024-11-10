@@ -4,9 +4,9 @@
   <p><em>A sleek local SMTP testing environment for developers</em></p>
 </div>
 
-## 🚧 Work in Progress
+## ⚠️ Alpha Status
 
-PostPilot is currently under active development. While the core functionality is being built, the project is not yet ready for production use. Stay tuned for updates!
+PostPilot is currently in alpha. While the core functionality is working, you may encounter bugs or missing features. Use in development environments only.
 
 <div align="center">
   <img src=".github/screenshot.png" alt="PostPilot Screenshot" width="90%" />
@@ -16,14 +16,37 @@ PostPilot is currently under active development. While the core functionality is
 
 PostPilot is a developer tool inspired by Laravel Herd's mail panel, designed to simplify email testing during development. It provides a local SMTP server that captures outgoing emails and displays them in a modern, user-friendly interface.
 
-## Features (Planned)
+## Features
 
+### Current
 - 📬 Local SMTP server for email testing
 - 🎨 Modern, responsive UI built with React and Tailwind CSS
 - 🌓 Light/Dark mode support
 - 📱 Preview emails in different formats (HTML, Text, Raw)
-- 🔍 Search and filter capabilities
-- ⚡ Built with Wails for native performance
+- 🔍 Basic search capabilities
+
+### Roadmap
+- [ ] Template comparison and management
+- [ ] Advanced search and filtering
+  - [ ] Date range filtering
+  - [ ] Content search
+  - [ ] Regular expression support
+- [ ] Email analysis tools
+  - [ ] Spam score checking
+  - [ ] Client compatibility validation
+  - [ ] Size and content analysis
+- [ ] Developer utilities
+  - [ ] Export as cURL command
+  - [ ] Multiple format export (EML, MSG)
+  - [ ] REST API for programmatic access
+- [ ] Email debugging tools
+  - [ ] Rendering process visualization
+  - [ ] Compatibility checking
+  - [ ] Size breakdown analysis
+- [ ] Performance testing features
+  - [ ] Batch email testing
+  - [ ] Delivery timing analysis
+  - [ ] Server metrics
 
 ## Development
 
@@ -44,7 +67,7 @@ go mod tidy
 wails dev
 ```
 
-This will start the development server with hot reload support. The application will be available at `http://localhost:34115`.
+This will start the development server with hot reload support.
 
 ## Building
 
@@ -56,7 +79,7 @@ wails build
 
 ## Contributing
 
-As this project is still in early development, we're not yet accepting contributions. However, feel free to star the repository and watch for updates!
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
 

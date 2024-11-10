@@ -14,6 +14,8 @@ export const defaultSettings: Settings = {
     theme: 'system',
     showPreview: false,
     timeFormat: '12',
+    notification: false,
+    persistence: false,
   },
   smtp: {
     host: 'localhost',

@@ -8,29 +8,36 @@ import { main } from '../wailsjs/go/models';
 
 function App() {
   const [emails, setEmails] = useState<main.Email[]>([]);
+  const [isResizing, setIsResizing] = useState(false);
 
   useEffect(() => {
     // Load initial emails
     GetEmails().then(setEmails);
 
     // Listen for new emails
-    const unsubscribe = EventsOn('new:email', (email: main.Email) => {
+    const unsubscribeNew = EventsOn('new:email', (email: main.Email) => {
       setEmails(prev => [...prev, email]);
     });
 
-    // Cleanup listener
+    // Listen for cleared emails
+    const unsubscribeClear = EventsOn('emails:cleared', () => {
+      setEmails([]);
+    });
+
+    // Cleanup listeners
     return () => {
-      unsubscribe();
+      unsubscribeNew();
+      unsubscribeClear();
     };
   }, []);
 
   return (
     <SettingsProvider>
-      <div className="h-screen bg-white text-gray-900">
-        <MainLayout />
+      <div className={`h-screen bg-white text-gray-900 ${isResizing ? 'select-none' : ''}`}>
+        <MainLayout emails={emails} />
       </div>
       <Toaster 
-        position="top-right"
+        position="bottom-right"
         toastOptions={{
           duration: 3000,
           style: {
