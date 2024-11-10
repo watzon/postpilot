@@ -94,6 +94,7 @@ jobs:
           cp -r build/linux/postpilot_0.0.0_ARCH/usr/share/* AppDir/usr/share/
           cp build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop AppDir/
           cp build/linux/postpilot_0.0.0_ARCH/usr/share/icons/hicolor/512x512/apps/postpilot.png AppDir/
+          sed -i 's|/usr/local/bin/postpilot|usr/bin/postpilot|g' AppDir/postpilot.desktop
 
       - name: Install FUSE and AppImage dependencies
         if: runner.os == 'Linux'
