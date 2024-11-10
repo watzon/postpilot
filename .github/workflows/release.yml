@@ -90,11 +90,14 @@ jobs:
         shell: bash
         run: |
           mkdir -p AppDir/usr/{bin,share}
+          # Copy the executable
           cp build/bin/postpilot AppDir/usr/bin/
+          # Copy share directory contents
           cp -r build/linux/postpilot_0.0.0_ARCH/usr/share/* AppDir/usr/share/
-          cp build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop AppDir/
+          # Copy and modify the desktop file
+          sed 's|/usr/local/bin/postpilot|usr/bin/postpilot|g' build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop > AppDir/postpilot.desktop
+          # Copy icon
           cp build/linux/postpilot_0.0.0_ARCH/usr/share/icons/hicolor/512x512/apps/postpilot.png AppDir/
-          sed -i 's|/usr/local/bin/postpilot|usr/bin/postpilot|g' AppDir/postpilot.desktop
 
       - name: Install FUSE and AppImage dependencies
         if: runner.os == 'Linux'
