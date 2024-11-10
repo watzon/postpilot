@@ -1,7 +1,7 @@
 import React from 'react';
 import { Email } from '../../types/email';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import toast from 'react-hot-toast';
+import { useClipboard } from '../../hooks/useClipboard';
 
 interface HeadersPanelProps {
   email: Email;
@@ -9,15 +9,7 @@ interface HeadersPanelProps {
 }
 
 const HeadersPanel: React.FC<HeadersPanelProps> = ({ email, onClose }) => {
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success('Copied to clipboard');
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-      toast.error('Failed to copy to clipboard');
-    }
-  };
+  const { copyToClipboard } = useClipboard();
 
   const headers = [
     { key: 'From', value: email.from },
