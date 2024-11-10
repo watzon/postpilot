@@ -1,0 +1,9 @@
+Package: postpilot
+Version: 0.0.0
+Section: base
+Priority: optional
+Architecture: ARCH
+Depends: libgtk-3-dev, libwebkit2gtk-4.0-dev
+Maintainer: Chris Watson <cawatson1993@gmail.com>
+Homepage: https://postpilot.watzon.tech
+Description: Test SMTP server and frontend client for local development
