@@ -1,0 +1,109 @@
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+    # Generate bindings
+    - bash -c 'go build -ldflags "-s -w -X main.useWails=true" -tags "bindings" -o bindings && ./bindings && rm -f ./bindings'
+    # Build frontend
+    - bash -c "cd frontend && npm install && npm run build"
+    # Build the .syso files for windows builds
+    # - bash -c "go-winres make" # TODO
+builds:
+  - main: .
+    id: "postpilot"
+    binary: "{{ .ProjectName }}"
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=1
+    # ensures mod timestamp to be the commit timestamp
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      # important for reproducible builds so full build paths and module paths
+      # are not embedded.
+      - -trimpath
+    ldflags:
+      # disable symbol table (-s) and DWARF generation (-w)
+      - -s -w -X main.Version={{.Version}} -X main.useWails=true
+    tags:
+      - desktop
+      - production
+    overrides:
+      - goos: windows
+        goarch: amd64
+        goamd64: v1
+        ldflags:
+          - -w
+          - -s
+          - -h
+          - -H windowsgui
+          - -X main.Version={{.Version}}
+          - -X main.useWails=true
+        tags:
+          - desktop
+          - production
+
+archives:
+  - format: tar.gz
+    # this template makes the OS and Arch compatible with the results of uname.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+    - goos: windows
+      format: zip
+
+# config the checksum filename
+# https://goreleaser.com/customization/checksum
+checksum:
+  name_template: 'checksums.txt'
+
+# create a source tarball
+# https://goreleaser.com/customization/source/
+source:
+  enabled: false
+
+# creates SBOMs of all archives and the source tarball using syft
+# https://goreleaser.com/customization/sbom
+sboms:
+  - artifacts: archive
+  - id: source # Two different sbom configurations need two different IDs
+    artifacts: source
+
+# signs the checksum file
+# all files (including the sboms) are included in the checksum, so we don't
+# need to sign each one if we don't want to
+# https://goreleaser.com/customization/sign
+signs:
+- cmd: cosign
+  env:
+  - COSIGN_EXPERIMENTAL=1
+  certificate: '${artifact}.pem'
+  args:
+    - sign-blob
+    - '--output-certificate=${certificate}'
+    - '--output-signature=${signature}'
+    - '${artifact}'
+    - "--yes" # needed on cosign 2.0.0+
+  artifacts: checksum
+  output: true
+
+# Configure generation of a development full build snapshot
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
