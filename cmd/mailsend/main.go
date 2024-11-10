@@ -6,16 +6,12 @@ import (
 	"net"
 	"net/smtp"
 	"time"
-
-	"github.com/watzon/mailviewer/internal/config"
 )
 
 func main() {
-	// Load the same config
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("Error loading config: %v", err)
-	}
+	// For now, let's hardcode these values since we're not using the config package yet
+	host := "localhost"
+	port := 1025
 
 	// Prepare email
 	from := "test@example.com"
@@ -43,7 +39,7 @@ func main() {
 	msg := headers + body
 
 	// Connect to the SMTP server
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+	addr := fmt.Sprintf("%s:%d", host, port)
 	log.Printf("Connecting to SMTP server at %s", addr)
 
 	// Try to establish a connection first
@@ -53,31 +49,11 @@ func main() {
 	}
 	conn.Close()
 
-	log.Printf("SMTP server is reachable, sending email...")
-
-	// Create channel for error reporting
-	done := make(chan error, 1)
-
-	// Send email in goroutine
-	go func() {
-		err := smtp.SendMail(
-			addr,
-			nil,
-			from,
-			to,
-			[]byte(msg),
-		)
-		done <- err
-	}()
-
-	// Wait for either completion or timeout
-	select {
-	case err := <-done:
-		if err != nil {
-			log.Fatalf("Error sending mail: %v", err)
-		}
-		log.Printf("Test email sent successfully to %s", addr)
-	case <-time.After(10 * time.Second):
-		log.Fatalf("Timeout while sending email")
+	// Send the email
+	err = smtp.SendMail(addr, nil, from, to, []byte(msg))
+	if err != nil {
+		log.Fatalf("Failed to send email: %v", err)
 	}
+
+	log.Println("Email sent successfully!")
 }
