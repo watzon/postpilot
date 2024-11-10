@@ -13,7 +13,7 @@ Date: ${new Date(email.timestamp).toUTCString()}`;
 
   return (
     <div className="p-6">
-      <pre className="whitespace-pre-wrap font-mono text-sm">{headers}</pre>
+      <pre className="whitespace-pre-wrap font-mono text-sm dark:text-gray-200">{headers}</pre>
     </div>
   );
 };

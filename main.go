@@ -11,13 +11,15 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+var version = "0.0.1" // You can update this manually or use build flags to set it
+
 func main() {
 	// Create an instance of the app structure
 	app := NewApp()
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "mailviewer",
+		Title:  "PostPilot",
 		Width:  1024,
 		Height: 768,
 		AssetServer: &assetserver.Options{

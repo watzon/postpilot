@@ -27,20 +27,20 @@ const EmailListItem: React.FC<EmailListItemProps> = ({
     <button
       onClick={onClick}
       className={`
-        w-full text-left px-4 py-3 border-b border-gray-200
+        w-full text-left px-4 py-3 border-b border-gray-200 dark:border-gray-700
         ${isSelected 
-          ? 'bg-blue-50 hover:bg-blue-100' 
-          : 'hover:bg-gray-50'
+          ? 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700' 
+          : 'hover:bg-gray-100 dark:hover:bg-gray-800'
         }
       `}
     >
       <div className="flex justify-between items-start">
-        <span className="font-medium">{email.from}</span>
-        <span className="text-sm text-gray-500">{formattedTime}</span>
+        <span className="font-medium dark:text-gray-200">{email.from}</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{formattedTime}</span>
       </div>
-      <div className="text-gray-900">{email.subject}</div>
+      <div className="text-gray-900 dark:text-gray-100">{email.subject}</div>
       {showPreview && (
-        <div className="text-sm text-gray-500 truncate mt-1">
+        <div className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">
           {email.body}
         </div>
       )}

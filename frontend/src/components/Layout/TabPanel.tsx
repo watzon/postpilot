@@ -3,15 +3,17 @@ import React from 'react';
 interface Tab {
   id: string;
   label: string;
+  isAction?: boolean;
 }
 
 interface TabPanelProps {
   tabs: Tab[];
   activeTab: string;
   onTabChange: (tabId: string) => void;
+  onAction?: (tabId: string) => void;
 }
 
-const TabPanel: React.FC<TabPanelProps> = ({ tabs, activeTab, onTabChange }) => {
+const TabPanel: React.FC<TabPanelProps> = ({ tabs, activeTab, onTabChange, onAction }) => {
   return (
     <div className="flex h-[74px]">
       {tabs.map((tab) => (
@@ -19,13 +21,18 @@ const TabPanel: React.FC<TabPanelProps> = ({ tabs, activeTab, onTabChange }) => 
           key={tab.id}
           className={`
             px-6 h-full font-medium text-center relative
-            ${activeTab === tab.id ? 'text-red-600' : 'text-gray-500 hover:text-gray-700'}
+            ${tab.isAction 
+              ? 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200' 
+              : activeTab === tab.id 
+                ? 'text-red-600 dark:text-red-400' 
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+            }
           `}
-          onClick={() => onTabChange(tab.id)}
+          onClick={() => tab.isAction ? onAction?.(tab.id) : onTabChange(tab.id)}
         >
           <span className="relative top-[2px]">{tab.label}</span>
-          {activeTab === tab.id && (
-            <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-red-600" />
+          {!tab.isAction && activeTab === tab.id && (
+            <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-red-600 dark:bg-red-400" />
           )}
         </button>
       ))}
