@@ -1,188 +1,73 @@
-# kanged from https://github.com/marcus-crane/october
 name: Release PostPilot
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [main]
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
-  release:
-    permissions:
-      contents: write
-    strategy:
-      matrix:
-        build:
-          - arch: amd64
-            platform: linux/amd64
-            os: ubuntu-latest
-            tag: linux_amd64
-          - arch: arm64
-            platform: linux/arm64
-            os: buildjet-4vcpu-ubuntu-2204-arm
-            tag: linux_arm64
-    runs-on: ${{ matrix.build.os }}
-    name: Release PostPilot (${{ matrix.build.tag }})
+  release-amd64:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      # Set up common, sanitised environment variables
-
-      - name: Normalise version tag
-        id: normalise_version
-        shell: bash
-        run: |
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            version=$(echo ${{ github.event.release.tag_name }} | sed -e 's/v//g')
-          else
-            version="0.0.0-pr${{ github.event.pull_request.number }}"
-          fi
-          echo "version=$version" >> $GITHUB_OUTPUT
-
-      # Set up development dependencies
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22
-
-      - name: Install wails
-        shell: bash
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.2
+          go-version: '1.22'
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20.8.0'
-      
-      # Dependencies
 
-      ## Linux
-
-      - name: Install Ubuntu prerequisites
-        if: runner.os == 'Linux'
-        shell: bash
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
-    
-      # Build -- frontend
-
-      - name: Build frontend assets
-        shell: bash
-        run: |
-          npm install -g npm
-          node version.js "v${{ steps.normalise_version.outputs.version }}"
-          cd frontend && npm install
-    
-      # Build -- app variants
-
-      ## Linux 
-      - name: Build wails app for Linux / macOS
-        if: runner.os == 'Linux' || runner.os == 'macOS'
-        shell: bash
-        run: wails build -platform ${{ matrix.build.platform }} -ldflags "-X main.version=v${{ steps.normalise_version.outputs.version }}"
-
-      # AppImage packaging
-      - name: Create AppDir structure
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          mkdir -p AppDir/usr/{bin,share}
-          # Copy the executable
-          cp build/bin/postpilot AppDir/usr/bin/
-          # Copy share directory contents
-          cp -r build/linux/postpilot_0.0.0_ARCH/usr/share/* AppDir/usr/share/
-          # Copy and modify the desktop file
-          sed 's|/usr/local/bin/postpilot|usr/bin/postpilot|g' build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop > AppDir/postpilot.desktop
-          # Copy icon
-          cp build/linux/postpilot_0.0.0_ARCH/usr/share/icons/hicolor/512x512/apps/postpilot.png AppDir/
-
-      - name: Install FUSE and AppImage dependencies
-        if: runner.os == 'Linux'
-        shell: bash
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y fuse libfuse2
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
 
-      - name: Download linuxdeploy
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          wget -c "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
-          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
-          chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-gtk.sh
-          # Extract AppImage if FUSE fails
-          ./linuxdeploy-x86_64.AppImage --appimage-extract || true
-          chmod +x squashfs-root/AppRun
-
-      - name: Create AppImage
-        if: runner.os == 'Linux'
-        shell: bash
-        env:
-          VERSION: ${{ steps.normalise_version.outputs.version }}
-          UPDATE_INFORMATION: "gh-releases-zsync|watzon|postpilot|latest|PostPilot-*x86_64.AppImage.zsync"
-        run: |
-          if [ -d "squashfs-root" ]; then
-            ./squashfs-root/AppRun --appdir AppDir --plugin gtk \
-              --output appimage \
-              --icon-file build/linux/postpilot_0.0.0_ARCH/usr/share/icons/hicolor/512x512/apps/postpilot.png \
-              --desktop-file build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop
-          else
-            ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin gtk \
-              --output appimage \
-              --icon-file build/linux/postpilot_0.0.0_ARCH/usr/share/icons/hicolor/512x512/apps/postpilot.png \
-              --desktop-file build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop
-          fi
-          mv PostPilot*.AppImage build/bin/postpilot-${{ matrix.build.tag }}.AppImage
-          cd build/bin && zip -r postpilot-${{ matrix.build.tag }}-appimage.zip postpilot-${{ matrix.build.tag }}.AppImage
-
-      # Packaging
-
-      ## Linux
-      - name: Package up deb file
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          mv build/bin/postpilot build/linux/postpilot_0.0.0_ARCH/usr/local/bin/
-          cd build/linux
-          sed -i 's/0.0.0/${{ steps.normalise_version.outputs.version }}/g' "postpilot_0.0.0_ARCH/DEBIAN/control"
-          sed -i 's/ARCH/${{ matrix.build.arch }}/g' "postpilot_0.0.0_ARCH/DEBIAN/control"
-          mv postpilot_0.0.0_ARCH "postpilot_${{ steps.normalise_version.outputs.version }}_${{ matrix.build.arch }}"
-          dpkg-deb --build "postpilot_${{ steps.normalise_version.outputs.version }}_${{ matrix.build.arch }}"
-        
-      - name: Compress deb
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          cd build/linux && zip -r postpilot-${{ matrix.build.tag }}.zip postpilot_${{ steps.normalise_version.outputs.version }}_${{ matrix.build.arch }}.deb
-          mv postpilot-${{ matrix.build.tag }}.zip ../bin
-
-      - name: Upload build artifact
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        uses: actions/upload-artifact@v4
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
         with:
-          name: postpilot_pr${{ github.event.pull_request.number }}_${{ github.event.pull_request.head.sha }}_${{ matrix.build.tag }}
-          path: |
-            ./build/bin/postpilot-${{ matrix.build.tag }}.zip
-            ./build/bin/postpilot-${{ matrix.build.tag }}-appimage.zip
-
-      - name: Get latest release from API
-        if: startsWith(github.ref, 'refs/tags/')
-        id: get_upload_url
-        shell: bash
-        run: |
-          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/watzon/postpilot/releases" > /tmp/releases.json
-          url=$(jq -r '.[0].upload_url' /tmp/releases.json)
-          echo "url=$url" >> $GITHUB_OUTPUT
-
-      - name: Upload artifact
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+          distribution: goreleaser
+          version: latest
+          args: release --clean --config .goreleaser.amd64.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-arm64:
+    runs-on: buildjet-4vcpu-ubuntu-2204-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          files: |
-            ./build/bin/postpilot-${{ matrix.build.tag }}.zip
-            ./build/bin/postpilot-${{ matrix.build.tag }}-appimage.zip
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.8.0'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean --config .goreleaser.arm64.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
