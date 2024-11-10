@@ -99,9 +99,9 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          wget https://github.com/linuxdeploy/linuxdeploy-plugin-gtk/releases/download/continuous/linuxdeploy-plugin-gtk-x86_64.AppImage
-          chmod +x linuxdeploy*.AppImage
+          wget -c "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
+          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+          chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-gtk.sh
 
       - name: Create AppImage
         if: runner.os == 'Linux'
@@ -110,7 +110,10 @@ jobs:
           VERSION: ${{ steps.normalise_version.outputs.version }}
           UPDATE_INFORMATION: "gh-releases-zsync|watzon|postpilot|latest|PostPilot-*x86_64.AppImage.zsync"
         run: |
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin gtk --output appimage
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin gtk \
+            --output appimage \
+            --icon-file build/linux/postpilot_0.0.0_ARCH/usr/share/icons/hicolor/512x512/apps/postpilot.png \
+            --desktop-file build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop
           mv PostPilot*.AppImage build/bin/postpilot-${{ matrix.build.tag }}.AppImage
           cd build/bin && zip -r postpilot-${{ matrix.build.tag }}-appimage.zip postpilot-${{ matrix.build.tag }}.AppImage
 
