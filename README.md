@@ -25,37 +25,48 @@ PostPilot is a developer tool inspired by Laravel Herd's mail panel, designed to
 - 📱 Preview emails in different formats (HTML, Text, Raw)
 - 🔍 Basic search capabilities
 
-### Roadmap
+### Installation
 
-For a comprehensive list of features and future plans, see the roadmap on [the project's website](https://postpilot.watzon.tech/roadmap).
+If you're on Linux or Windows you can go check out the [releases page](https://github.com/watzon/postpilot/releases) and download the binary for your platform. As I don't yet have a Windows signing certificate, Windows users will have to skip past the scary "This software may harm your computer" warning, or build from source using the below instructions.
+
+Arch users can install PostPilot from the AUR:
+
+```bash
+yay -S postpilot-bin
+```
+
+## Building from source
+
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/watzon/postpilot.git
+   ```
+
+2. Install dependencies
+   ```bash
+   make dep
+   ```
+
+3. Build the project
+   ```bash
+   make build
+   ```
+
+The binary will be located in the `build/bin` directory.
 
 ## Development
 
-To get started with development:
+Development requires the Wails CLI, which you can install with:
 
-1. Install dependencies:
 ```bash
-# Install frontend dependencies
-cd frontend
-npm install
-
-# Install Go dependencies
-go mod tidy
+go install github.com/wailsapp/wails/v3/cmd/wails@latest
 ```
 
-2. Run in development mode:
+Then run the following command to start the development server:
+
 ```bash
 wails dev
-```
-
-This will start the development server with hot reload support.
-
-## Building
-
-To build a production version:
-
-```bash
-wails build
 ```
 
 ## Contributing
