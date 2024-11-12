@@ -101,7 +101,7 @@ const EmailList: React.FC<EmailListProps> = ({ emails, onSelectEmail, selectedEm
             </div>
 
             {showClearConfirm && (
-                <div className="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center p-4 z-40">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm w-full">
                         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
                             Clear all emails?

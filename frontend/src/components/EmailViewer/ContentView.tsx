@@ -1,11 +1,25 @@
 import React from 'react';
 import { Email } from '../../types/email';
+import { BrowserOpenURL } from '../../../wailsjs/runtime/runtime';
 
 interface ContentViewProps {
   email: Email;
 }
 
 const ContentView: React.FC<ContentViewProps> = ({ email }) => {
+  const handleLinkClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const link = target.closest('a');
+    
+    if (link) {
+      e.preventDefault();
+      const href = link.getAttribute('href');
+      if (href) {
+        BrowserOpenURL(href);
+      }
+    }
+  };
+
   return (
     <div>
       <div className="bg-white dark:bg-gray-900">
@@ -36,6 +50,7 @@ const ContentView: React.FC<ContentViewProps> = ({ email }) => {
       <div 
         className="prose dark:prose-invert max-w-none px-6 py-4"
         dangerouslySetInnerHTML={{ __html: email.html }}
+        onClick={handleLinkClick}
       />
     </div>
   );
