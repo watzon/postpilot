@@ -100,11 +100,14 @@ jobs:
 
       - name: Generate PKGBUILD
         run: |
-          echo "Building package for version: ${{ github.ref_name }}"
+          # Remove 'v' prefix from version number for pkgver
+          VERSION="${{ github.ref_name }}"
+          VERSION_NO_V="${VERSION#v}"
+          echo "Building package for version: $VERSION_NO_V"
           cat > PKGBUILD << EOF
           # Maintainer: Watzon <cawatson1993@gmail.com>
           pkgname=postpilot-bin
-          pkgver=${{ github.ref_name }}
+          pkgver=${VERSION_NO_V}
           pkgrel=1
           pkgdesc="Email and SMTP testing GUI for developers"
           arch=('x86_64' 'aarch64')
@@ -114,8 +117,8 @@ jobs:
           provides=('postpilot')
           conflicts=('postpilot')
 
-          source_x86_64=("\${pkgname}-\${pkgver}-x86_64.pkg.tar.zst::https://github.com/watzon/postpilot/releases/download/v\${pkgver}/postpilot_\${pkgver}_linux_amd64.pkg.tar.zst")
-          source_aarch64=("\${pkgname}-\${pkgver}-aarch64.pkg.tar.zst::https://github.com/watzon/postpilot/releases/download/v\${pkgver}/postpilot_\${pkgver}_linux_arm64.pkg.tar.zst")
+          source_x86_64=("\${pkgname}-\${pkgver}-x86_64.pkg.tar.zst::https://github.com/watzon/postpilot/releases/download/${VERSION}/postpilot_\${pkgver}_linux_amd64.pkg.tar.zst")
+          source_aarch64=("\${pkgname}-\${pkgver}-aarch64.pkg.tar.zst::https://github.com/watzon/postpilot/releases/download/${VERSION}/postpilot_\${pkgver}_linux_arm64.pkg.tar.zst")
           sha256sums_x86_64=('SKIP')
           sha256sums_aarch64=('SKIP')
 
