@@ -8,6 +8,7 @@ import RawView from './RawView';
 import { Settings } from '../../types/settings';
 import { useSettings } from '../../hooks/useSettings';
 import { useClipboard } from '../../hooks/useClipboard';
+import { SpamReport } from '../email/SpamReport';
 
 interface EmailViewerProps {
   email: Email | null;
@@ -109,6 +110,11 @@ const EmailViewer: React.FC<EmailViewerProps> = ({ email }) => {
       id: 'raw', 
       label: 'Raw' 
     },
+    {
+      id: 'spam',
+      label: 'Spam',
+      disabled: !settings.spamAssassin.enabled
+    }
   ];
 
   return (
@@ -131,6 +137,11 @@ const EmailViewer: React.FC<EmailViewerProps> = ({ email }) => {
           {activeTab === 'content' && email.html && <ContentView email={email} />}
           {activeTab === 'text' && email.body && <TextView email={email} />}
           {activeTab === 'raw' && <RawView email={email} />}
+          {activeTab === 'spam' && settings.spamAssassin.enabled && (
+            <div className="p-4">
+              <SpamReport emailId={email.id} />
+            </div>
+          )}
         </div>
       </div>
       

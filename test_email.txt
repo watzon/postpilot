@@ -1,0 +1,11 @@
+From: test@example.com
+To: recipient@example.com
+Subject: Test Email for SpamAssassin
+
+Dear Sir/Madam,
+
+CONGRATULATIONS! You've won a million dollars! Click here to claim your prize now!
+This is definitely not spam, just send us your bank details and social security number.
+
+Best regards,
+Totally Legitimate Business

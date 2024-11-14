@@ -25,6 +25,13 @@ export const defaultSettings: Settings = {
     password: '',
     tls: 'none',
   },
+  spamAssassin: {
+    enabled: false,
+    binary: 'spamc',
+    useLocal: true,
+    host: 'localhost',
+    port: 783,
+  },
 };
 
 export const SettingsContext = createContext<SettingsContextType>({

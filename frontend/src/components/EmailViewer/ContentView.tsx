@@ -1,5 +1,6 @@
 import React from 'react';
 import { Email } from '../../types/email';
+import { SpamIndicator } from './SpamIndicator';
 
 interface ContentViewProps {
   email: Email;
@@ -10,9 +11,10 @@ const ContentView: React.FC<ContentViewProps> = ({ email }) => {
     <div>
       <div className="bg-white dark:bg-gray-900">
         <div className="px-6 py-4 space-y-2">
-          <div className="grid grid-cols-[4rem_1fr]">
+          <div className="grid grid-cols-[4rem_1fr_auto] items-center">
             <span className="font-medium dark:text-gray-300">From:</span>
             <span className="dark:text-gray-200">{email.from}</span>
+            <SpamIndicator emailId={email.id} />
           </div>
           <div className="grid grid-cols-[4rem_1fr]">
             <span className="font-medium dark:text-gray-300">To:</span>
@@ -41,4 +43,4 @@ const ContentView: React.FC<ContentViewProps> = ({ email }) => {
   );
 };
 
-export default ContentView; 
+export default ContentView;

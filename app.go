@@ -1,18 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/watzon/postpilot/internal/notify"
 	"github.com/watzon/postpilot/internal/smtp"
+	"github.com/watzon/postpilot/internal/spam"
 )
 
 type Email struct {
@@ -42,21 +45,34 @@ type SMTPSettings struct {
 	TLS      string `json:"tls"`
 }
 
+type SpamAssassinSettings struct {
+	Enabled  bool   `json:"enabled"`
+	Binary   string `json:"binary"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	UseLocal bool   `json:"useLocal"`
+}
+
 type Settings struct {
-	UI   UISettings   `json:"ui"`
-	SMTP SMTPSettings `json:"smtp"`
+	UI           UISettings           `json:"ui"`
+	SMTP         SMTPSettings         `json:"smtp"`
+	SpamAssassin SpamAssassinSettings `json:"spamAssassin"`
 }
 
 type App struct {
-	ctx    context.Context
-	smtp   *smtp.Server
-	emails []*Email
-	mu     sync.RWMutex
+	ctx         context.Context
+	smtp        *smtp.Server
+	emails      []*Email
+	mu          sync.RWMutex
+	spamChecker *spam.SpamChecker
+	spamCache   map[string]*spam.SpamReport
+	spamMu      sync.RWMutex
 }
 
 func NewApp() *App {
 	return &App{
-		emails: make([]*Email, 0),
+		emails:    make([]*Email, 0),
+		spamCache: make(map[string]*spam.SpamReport),
 	}
 }
 
@@ -67,6 +83,16 @@ func (a *App) startup(ctx context.Context) {
 	settings, err := a.GetSettings()
 	if err != nil {
 		log.Printf("Failed to load settings: %v", err)
+	}
+
+	// Initialize spam checker if enabled
+	if settings.SpamAssassin.Enabled {
+		a.spamChecker = spam.NewSpamChecker(
+			settings.SpamAssassin.Binary,
+			settings.SpamAssassin.UseLocal,
+			settings.SpamAssassin.Host,
+			settings.SpamAssassin.Port,
+		)
 	}
 
 	// Load emails from disk if persistence is enabled
@@ -199,16 +225,23 @@ func (a *App) GetSettings() (Settings, error) {
 	settings := Settings{
 		UI: UISettings{
 			Theme:        "system",
-			ShowPreview:  false,
+			ShowPreview:  true,
 			TimeFormat:   "12",
 			Notification: true,
-			Persistence:  false,
+			Persistence:  true,
 		},
 		SMTP: SMTPSettings{
 			Host: "localhost",
 			Port: 1025,
 			Auth: "none",
 			TLS:  "none",
+		},
+		SpamAssassin: SpamAssassinSettings{
+			Enabled:  false,
+			Binary:   spam.GetDefaultBinaryPath(),
+			Host:     "localhost",
+			Port:     783,
+			UseLocal: true,
 		},
 	}
 
@@ -230,22 +263,54 @@ func (a *App) GetSettings() (Settings, error) {
 }
 
 func (a *App) SaveSettings(settings Settings) error {
-	configPath := a.getConfigPath()
-
 	// Create config directory if it doesn't exist
-	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return err
+	configPath := a.getConfigPath()
+	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	// Marshal settings to JSON
+	// Update SpamAssassin checker if settings changed
+	if settings.SpamAssassin.Enabled {
+		// Check if SpamAssassin is available
+		if !spam.IsAvailable(settings.SpamAssassin.Binary) {
+			return fmt.Errorf("SpamAssassin binary not found at: %s", settings.SpamAssassin.Binary)
+		}
+		// Initialize or update spam checker
+		a.spamChecker = spam.NewSpamChecker(
+			settings.SpamAssassin.Binary,
+			settings.SpamAssassin.UseLocal,
+			settings.SpamAssassin.Host,
+			settings.SpamAssassin.Port,
+		)
+	} else {
+		a.spamChecker = nil
+	}
+
+	// Save settings to file
 	data, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal settings: %w", err)
 	}
 
-	// Write to file
-	return os.WriteFile(configPath, data, 0644)
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write settings file: %w", err)
+	}
+
+	// Update theme
+	if settings.UI.Theme == "dark" {
+		runtime.WindowSetDarkTheme(a.ctx)
+	} else if settings.UI.Theme == "light" {
+		runtime.WindowSetLightTheme(a.ctx)
+	}
+
+	// If SMTP settings changed, restart the server
+	if a.smtp != nil {
+		if err := a.RestartSMTPServer(); err != nil {
+			return fmt.Errorf("failed to restart SMTP server: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (a *App) getConfigPath() string {
@@ -333,16 +398,75 @@ func (a *App) ClearEmails() error {
 	a.emails = make([]*Email, 0)
 	a.mu.Unlock()
 
-	// Remove the emails file if it exists
-	emailsPath := a.getEmailsPath()
-	_ = os.Remove(emailsPath)
+	a.spamMu.Lock()
+	a.spamCache = make(map[string]*spam.SpamReport)
+	a.spamMu.Unlock()
 
-	// Emit event to frontend
-	runtime.EventsEmit(a.ctx, "emails:cleared")
+	// If persistence is enabled, remove the emails file
+	settings, err := a.GetSettings()
+	if err != nil {
+		return fmt.Errorf("failed to get settings: %w", err)
+	}
+
+	if settings.UI.Persistence {
+		emailsPath := a.getEmailsPath()
+		if err := os.Remove(emailsPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove emails file: %w", err)
+		}
+	}
 
 	return nil
 }
 
 func (a *App) GetVersion() string {
 	return version
+}
+
+// CheckSpam runs a spam check on the specified email
+func (a *App) CheckSpam(emailID string) (*spam.SpamReport, error) {
+	if a.spamChecker == nil {
+		return nil, fmt.Errorf("spam checking is not enabled")
+	}
+
+	// Check cache first
+	a.spamMu.RLock()
+	if report, ok := a.spamCache[emailID]; ok {
+		a.spamMu.RUnlock()
+		return report, nil
+	}
+	a.spamMu.RUnlock()
+
+	a.mu.RLock()
+	var email *Email
+	for _, e := range a.emails {
+		if e.ID == emailID {
+			email = e
+			break
+		}
+	}
+	a.mu.RUnlock()
+
+	if email == nil {
+		return nil, fmt.Errorf("email not found")
+	}
+
+	// Construct raw email content
+	var rawEmail bytes.Buffer
+	fmt.Fprintf(&rawEmail, "From: %s\r\n", email.From)
+	fmt.Fprintf(&rawEmail, "To: %s\r\n", strings.Join(email.To, ", "))
+	fmt.Fprintf(&rawEmail, "Subject: %s\r\n", email.Subject)
+	fmt.Fprintf(&rawEmail, "Content-Type: text/html\r\n\r\n")
+	fmt.Fprintf(&rawEmail, "%s", email.HTML)
+
+	report, err := a.spamChecker.CheckEmail(rawEmail.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the result
+	a.spamMu.Lock()
+	a.spamCache[emailID] = report
+	a.spamMu.Unlock()
+
+	return report, nil
 }

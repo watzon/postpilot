@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useSettings } from '../../hooks/useSettings';
 import type { Settings } from '../../types/settings';
 import { GetVersion } from '../../../wailsjs/go/main/App';
+import { SpamAssassinSettings } from './SpamAssassinSettings';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -76,6 +77,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             {[
               { id: 'ui', label: 'UI Settings' },
               { id: 'smtp', label: 'SMTP Settings' },
+              { id: 'spam', label: 'SpamAssassin' },
               { id: 'about', label: 'About' },
             ].map((tab) => (
               <button
@@ -319,6 +321,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'spam' && (
+            <div className="p-6">
+              <SpamAssassinSettings
+                settings={localSettings.spamAssassin}
+                onChange={(spamSettings) => {
+                  updateLocalSettings(['spamAssassin'], spamSettings);
+                }}
+                updateLocalSettings={updateLocalSettings}
+              />
             </div>
           )}
 
