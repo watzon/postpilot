@@ -4,6 +4,9 @@
   <p><em>A sleek local SMTP testing environment for developers</em></p>
 </div>
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/watzon/postpilot)](https://goreportcard.com/report/github.com/watzon/postpilot)
+[![Packaging status](https://repology.org/badge/tiny-repos/postpilot.svg)](https://repology.org/project/postpilot/versions)
+
 ## ⚠️ Alpha Status
 
 PostPilot is currently in alpha. While the core functionality is working, you may encounter bugs or missing features. Use in development environments only.
@@ -34,6 +37,10 @@ Arch users can install PostPilot from the AUR:
 ```bash
 yay -S postpilot-bin
 ```
+
+Distro packaging is sparse right now, but you can help with that!
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/postpilot.svg)](https://repology.org/project/postpilot/versions)
 
 ## Building from source
 
