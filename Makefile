@@ -13,6 +13,18 @@ else ifeq ($(ARCH),aarch64)
     GOARCH=arm64
 endif
 
+# Check for webkit versions and set build tags
+WEBKIT_41_CHECK := $(shell pkg-config --exists webkit2gtk-4.1 && echo "yes" || echo "no")
+WEBKIT_40_CHECK := $(shell pkg-config --exists webkit2gtk-4.0 && echo "yes" || echo "no")
+
+ifeq ($(WEBKIT_41_CHECK),yes)
+    WEBKIT_TAGS=webkit2_41
+else ifeq ($(WEBKIT_40_CHECK),yes)
+    WEBKIT_TAGS=
+else
+    $(error "Neither webkit2gtk-4.0 nor webkit2gtk-4.1 development packages found. Please install one of them.")
+endif
+
 LDFLAGS = -w -s -X main.Version=$(TAG) -X main.Commit=$(COMMIT) -X main.Branch=$(BRANCH) -X main.useWails=true
 
 .PHONY: help clean dep build install uninstall
@@ -48,10 +60,10 @@ frontend: dep
 	cd frontend && npm run build
 
 bindings: dep frontend
-	GOARCH=$(GOARCH) go build -ldflags "-s -w -X main.useWails=true" -tags "bindings" -o bindings && ./bindings && rm -f ./bindings
+	GOARCH=$(GOARCH) go build -ldflags "-s -w -X main.useWails=true" -tags "bindings $(WEBKIT_TAGS)" -o bindings && ./bindings && rm -f ./bindings
 
 build: bindings
-	GOARCH=$(GOARCH) wails build
+	GOARCH=$(GOARCH) wails build -tags "$(WEBKIT_TAGS)"
 
 install:
 	install -pm 755 bin/${PROGRAM_NAME} /usr/local/bin/${PROGRAM_NAME}

@@ -129,9 +129,5 @@ nfpms:
           - libappindicator-gtk3
     rpm:
       packager: "Watzon <cawatson1993@gmail.com>"
-    deb:
-      fields:
-        Maintainer: "Watzon <cawatson1993@gmail.com>"
-        Bugs: https://github.com/watzon/postpilot/issues
     archlinux:
       packager: "Watzon <cawatson1993@gmail.com>"
