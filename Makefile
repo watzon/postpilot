@@ -66,7 +66,23 @@ build: bindings
 	GOARCH=$(GOARCH) wails build -tags "$(WEBKIT_TAGS)"
 
 install:
-	install -pm 755 bin/${PROGRAM_NAME} /usr/local/bin/${PROGRAM_NAME}
+	# Binary installation
+	install -pm 755 build/bin/${PROGRAM_NAME} /usr/local/bin/${PROGRAM_NAME}
+	# Desktop file
+	install -dm 755 /usr/share/applications/
+	install -pm 644 build/linux/postpilot_0.0.0_ARCH/usr/share/applications/postpilot.desktop /usr/share/applications/
+	# Icon
+	install -dm 755 /usr/share/icons/hicolor/512x512/apps/
+	install -pm 644 build/linux/postpilot_0.0.0_ARCH/usr/share/icons/hicolor/512x512/apps/postpilot.png /usr/share/icons/hicolor/512x512/apps/
+	# Appdata
+	install -dm 755 /usr/share/metainfo/
+	install -pm 644 build/linux/postpilot_0.0.0_ARCH/usr/share/metainfo/tech.watzon.postpilot.appdata.xml /usr/share/metainfo/
+	# Update icon cache
+	-gtk-update-icon-cache -f -t /usr/share/icons/hicolor
 
 uninstall:
 	rm -f /usr/local/bin/${PROGRAM_NAME}
+	rm -f /usr/share/applications/postpilot.desktop
+	rm -f /usr/share/icons/hicolor/512x512/apps/postpilot.png
+	rm -f /usr/share/metainfo/tech.watzon.postpilot.appdata.xml
+	-gtk-update-icon-cache -f -t /usr/share/icons/hicolor

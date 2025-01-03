@@ -50,17 +50,13 @@ Distro packaging is sparse right now, but you can help with that!
    git clone https://github.com/watzon/postpilot.git
    ```
 
-2. Install dependencies
-   ```bash
-   make dep
-   ```
-
-3. Build the project
+2. Build and install
    ```bash
    make build
+   sudo make install
    ```
 
-The binary will be located in the `build/bin` directory.
+The binary will be installed to `/usr/local/bin/postpilot` and the desktop file will be installed to `/usr/share/applications/postpilot.desktop`.
 
 ## Development
 
@@ -69,6 +65,14 @@ Development requires the Wails CLI, which you can install with:
 ```bash
 go install github.com/wailsapp/wails/v3/cmd/wails@latest
 ```
+
+Run `wails doctor` to check your development environment. You will need to have the following installed:
+
+- Go
+- Node.js
+- npm
+- GTK 3.0
+- WebKitGTK 4.0
 
 Then run the following command to start the development server:
 
